@@ -10,7 +10,8 @@ import pandas as pd
 # Import your workflow functions here
 from app_script import (
     detect_circles_yolo, delta_e_calc, gray_scale_conv,
-    filter_df, add_experiment_column, parameter_linear_regression_evaluation
+    filter_df, add_experiment_column, parameter_linear_regression_evaluation, compute_lod_table
+
 )
 
 app = FastAPI()
@@ -73,8 +74,16 @@ async def analyze(
         logging.info("filter_df completed")
         df3 = add_experiment_column(df2, total_experiments=rows, cols_per_experiment=cols-1)
         logging.info("add_experiment_column completed")
-        r2_df, df3 = parameter_linear_regression_evaluation(df3, plot_path=plot_paths[3], experiment_type=experiment_type)
+        r2_df, df3_reg = parameter_linear_regression_evaluation(df3, plot_path=plot_paths[3], experiment_type=experiment_type)
         logging.info("parameter_linear_regression_evaluation completed")
+
+        lod_df = compute_lod_table(df, df3_reg, cols)
+
+        lod_path = os.path.join(results_dir, "lod_table.csv")
+        lod_df.to_csv(lod_path, index=False)
+
+        logging.info(f"LOD table saved to {lod_path}")
+
 
         df3_path = os.path.join(results_dir, "all_color_data.csv")
         r2_path = os.path.join(results_dir, "linear_regression_ranking.csv")
@@ -82,7 +91,7 @@ async def analyze(
         r2_df.to_csv(r2_path, index=False)
         logging.info(f"Saved datasets: {df3_path}, {r2_path}")
 
-        files_to_check = plot_paths + [df3_path, r2_path]
+        files_to_check = plot_paths + [df3_path, r2_path, lod_path]
         for file_path in files_to_check:
             if not os.path.exists(file_path):
                 logging.error(f"Expected file not found: {file_path}")
@@ -90,12 +99,14 @@ async def analyze(
         existing_plots = [p for p in plot_paths if os.path.exists(p)]
         datasets = {
             "all_color_data": df3_path if os.path.exists(df3_path) else None,
-            "linear_regression_ranking": r2_path if os.path.exists(r2_path) else None
+            "linear_regression_ranking": r2_path if os.path.exists(r2_path) else None,
+            "lod_table": lod_path if os.path.exists(lod_path) else None
         }
 
         return {
             "plots": existing_plots,
-            "datasets": datasets
+            "datasets": datasets,
+            "lod": lod_df.to_dict(orient="records")
         }
     except Exception as e:
         import traceback

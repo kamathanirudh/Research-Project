@@ -550,6 +550,8 @@ def parameter_linear_regression_evaluation(df3,plot_path=None, experiment_type="
     X = df3[['Column Index']].values  # X is always Column Index
     n = len(df3)
 
+    
+
     # Prepare for plotting
     num_features = len(features)
     ncols = 3
@@ -626,6 +628,66 @@ def parameter_linear_regression_evaluation(df3,plot_path=None, experiment_type="
     result_df = result_df.sort_values(by='R²', ascending=False).reset_index(drop=True)
 
     return result_df, df3
+
+def compute_lod_table(df_with_blank, df_reg, cols):
+    """
+    Returns a DataFrame:
+    Color Space | Blank Row 1 | Blank Row 2 | ... | Std Dev | LOD
+    """
+
+    features = [
+        'R', 'G', 'B',
+        'X', 'Y', 'Z',
+        'L', 'a*', 'b*',
+        'H', 'S', 'V',
+        'Grayscale', 'Delta E'
+    ]
+
+    rows = []
+
+    # Prepare blank dataframe
+    df_blank = df_with_blank.copy()
+    df_blank["Column Index"] = (df_blank["Circle Number"] - 1) % cols
+    df_blank["Experiment"] = (df_blank["Circle Number"] - 1) // cols + 1
+
+    for feature in features:
+        if feature not in df_blank.columns:
+            continue
+
+        # --- Blank values per row ---
+        blank_vals = (
+            df_blank[df_blank["Column Index"] == 0]
+            .sort_values("Experiment")[feature]
+            .values
+        )
+
+        # Need at least 2 blanks
+        if len(blank_vals) < 2:
+            continue
+
+        sigma_blank = np.std(blank_vals, ddof=1)
+
+        # --- Regression slope ---
+        X = df_reg[['Column Index']].values
+        y = df_reg[feature].values
+        model = LinearRegression().fit(X, y)
+        slope = model.coef_[0]
+
+        if slope == 0:
+            continue
+
+        lod = (3 * sigma_blank) / abs(slope)
+
+        row = {"Color Space": feature}
+        for i, val in enumerate(blank_vals, start=1):
+            row[f"Blank Row {i}"] = val
+
+        row["Std Dev (σ_blank)"] = sigma_blank
+        row["LOD (g/dL)"] = lod
+
+        rows.append(row)
+
+    return pd.DataFrame(rows)
 
 
 # if __name__ == "__main__":
