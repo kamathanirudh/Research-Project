@@ -76,7 +76,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   late Animation<double> _fadeAnimation;
 
   // Update this with your backend URL
-  final String baseUrl = 'http://192.168.1.12:8000';
+  final String baseUrl = 'http://192.168.1.7:8000';
 
   @override
   void initState() {
@@ -567,6 +567,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 class ResultsScreen extends StatelessWidget {
   final Map<String, dynamic> results;
   final String baseUrl;
+  
+  
 
   const ResultsScreen({
     Key? key,
@@ -642,6 +644,8 @@ class ResultsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final plots = results['plots'] as List;
     final datasets = results['datasets'] as Map<String, dynamic>;
+    print(datasets);
+
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -769,6 +773,23 @@ class ResultsScreen extends StatelessWidget {
                   onPressed: () => _downloadFile(
                     context,
                     datasets['linear_regression_ranking'],
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+          if (datasets['lod_table'] != null)
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.science, color: Color(0xFF2196F3)),
+                title: const Text('LOD Table'),
+                subtitle: const Text('Limit of Detection analysis'),
+                trailing: IconButton(
+                  icon: const Icon(Icons.download),
+                  onPressed: () => _downloadFile(
+                    context,
+                    datasets['lod_table'],
                   ),
                 ),
               ),

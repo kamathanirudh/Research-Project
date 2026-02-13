@@ -70,10 +70,13 @@ async def analyze(
         logging.info("delta_e_calc completed")
         df = gray_scale_conv(df)
         logging.info("gray_scale_conv completed")
-        df2, filtered_df = filter_df(df, cols)
-        logging.info("filter_df completed")
-        df3 = add_experiment_column(df2, total_experiments=rows, cols_per_experiment=cols-1)
+
+        df_with_blank,df_no_blank = filter_df(df,cols)
+        logging.info("Initial filter_df completed")
+        df3 = add_experiment_column(df_no_blank, total_experiments=rows, cols_per_experiment=cols-1)
         logging.info("add_experiment_column completed")
+
+
         r2_df, df3_reg = parameter_linear_regression_evaluation(df3, plot_path=plot_paths[3], experiment_type=experiment_type)
         logging.info("parameter_linear_regression_evaluation completed")
 
@@ -115,6 +118,10 @@ async def analyze(
             status_code=400,
             content={"error": f"{str(e)}\n{traceback.format_exc()}"}
         )
+    
+
+
+    
 @app.get("/download/{file_path:path}")
 def download_file(file_path: str):
     if not file_path.startswith("results/"):
